@@ -1,5 +1,4 @@
-#(Based on https://github.com/openfheorg/openfhe-python/tree/main/docker)
-#Base ununtu image
+#Base Ubuntu image
 FROM ubuntu:22.04
 
 #Set environment variables to non-interactive (this prevents some prompts)
@@ -17,11 +16,17 @@ RUN apt-get update && apt-get install -y \
     sudo \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+#Install JupyterLab
+RUN pip3 install --no-cache-dir jupyterlab
+
+#Install Rust
+RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
+
+#**********Start OpenFHE setup**********
+#(See https://github.com/openfheorg/openfhe-python/tree/main/docker)
+
 #Install PyBind11
 RUN pip3 install "pybind11[global]"
-	
-#Install JupyterLab
-RUN python3 -m pip install --no-cache-dir jupyterlab
 
 #Clone and build openfhe C++ library
 RUN git clone https://github.com/openfheorg/openfhe-development.git \
@@ -47,7 +52,23 @@ RUN git clone https://github.com/openfheorg/openfhe-python.git \
 
 #Install openfhe as a pip package
 WORKDIR /openfhe-python
-RUN python3 setup.py sdist bdist_wheel && pip install dist/openfhe-*.whl
+RUN python3 setup.py sdist bdist_wheel && pip3 install dist/openfhe-*.whl
+#**********End OpenFHE setup**********
+
+
+#**********Start TFHE-rs setup**********
+#(See https://github.com/zama-ai/tfhe-rs)
+
+#**********End TFHE-rs setup**********
+
+
+
+#**********Start Concrete setup**********
+#(See https://github.com/zama-ai/concrete)
+
+RUN pip3 --no-cache-dir install concrete-python concrete-ml
+#**********End Concrete setup**********
+
 
 #Expose JupyterLab listen port
 EXPOSE 8888
@@ -55,5 +76,5 @@ EXPOSE 8888
 #Set the working directory
 WORKDIR /workspace
 
-#Start JupyterLab without token authentication
+#Start JupyterLab (with authentication disabled)
 CMD ["jupyter-lab", "--ip=0.0.0.0", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.allow_origin='*'", "--NotebookApp.password=''", "--NotebookApp.password_required=False"]
